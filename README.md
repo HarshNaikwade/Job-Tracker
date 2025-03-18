@@ -1,6 +1,6 @@
 # Job Tracker
 
-A modern job application tracker built with **React**, **Vite**, and **Material-UI**. The app uses **Firebase Firestore** as a backend to store job applications and **Firebase Authentication** (email/password) with a restricted access mechanism (to limit access to specific users temporarily). 
+A modern job application tracker built with **React**, **Vite**, and **Material-UI**, utilizing **Firebase Firestore** for real-time job application storage and **Firebase Authentication** with support for Google Sign-In and email/password login.
 
 ## Table of Contents
 
@@ -15,10 +15,13 @@ A modern job application tracker built with **React**, **Vite**, and **Material-
 
 - **Job Application Tracker:** Create, update, and delete job applications.
 - **Authentication:** Email/password login with restricted access (only allowed users in the Firestore `allowedUsers` collection).
+- **User-Specific Data:** Each user can only access their own job applications.
 - **Dark Mode:** Toggle between light and dark themes.
 - **Persistent Storage:** Uses Firebase Firestore to store job applications with real-time syncing.
 - **Firebase Integration:** Uses Firebase Firestore for data and Firebase Authentication for secure login.
+- **Mobile-Friendly UI:** Fully responsive design for mobile and desktop.
 - **Continuous Deployment:** Deployed on Netlify for fast and reliable hosting.
+- **Ongoing Development:** Gmail integration for automated job tracking (coming soon).
 
 ## Tech Stack
 
@@ -132,4 +135,3 @@ To integrate Firebase into the project:
    This will generate optimized production files in the `dist/` folder.
 
 ---
-
