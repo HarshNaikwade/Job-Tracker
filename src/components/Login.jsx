@@ -2,10 +2,8 @@ import React, { useState } from "react";
 import {
   auth,
   signInWithEmailAndPassword,
-  signOut,
-  db,
-  getDoc,
-  doc,
+  signInWithPopup,
+  provider,
 } from "../firebase";
 import {
   TextField,
@@ -14,45 +12,70 @@ import {
   Box,
   Snackbar,
   Alert,
+  Typography,
+  Stack,
+  useTheme,
+  IconButton,
+  InputAdornment,
 } from "@mui/material";
+import { Google, Visibility, VisibilityOff } from "@mui/icons-material";
+
+const PasswordField = ({ password, setPassword }) => {
+  const [showPassword, setShowPassword] = useState(false);
+
+  return (
+    <TextField
+      label="Password"
+      type={showPassword ? "text" : "password"}
+      fullWidth
+      value={password}
+      onChange={(e) => setPassword(e.target.value)}
+      variant="outlined"
+      slotProps={{
+        input: {
+          endAdornment: (
+            <InputAdornment position="end">
+              <IconButton
+                onClick={() => setShowPassword((prev) => !prev)}
+                edge="end"
+                aria-label="toggle password visibility"
+              >
+                {showPassword ? <VisibilityOff /> : <Visibility />}
+              </IconButton>
+            </InputAdornment>
+          ),
+        },
+      }}
+    />
+  );
+};
 
 const Login = ({ setUser }) => {
+  const theme = useTheme();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const handleLogin = async () => {
-    if (!email || !password) return; // Prevent empty login attempts
+  const handleLogin = async (method) => {
     setLoading(true);
     setError("");
-
     try {
-      const result = await signInWithEmailAndPassword(auth, email, password);
-      const user = result.user;
-
-      // 🔹 Check Firestore if the user exists in allowedUsers collection
-      const userRef = doc(db, "allowedUsers", user.uid);
-      const userSnap = await getDoc(userRef);
-
-      if (!userSnap.exists()) {
-        setError(true);
-        await signOut(auth); // ❌ Logout unauthorized user
-      } else {
-        setUser(user); // ✅ Grant access
-      }
+      const result =
+        method === "google"
+          ? await signInWithPopup(auth, provider)
+          : await signInWithEmailAndPassword(auth, email, password);
+      setUser(result.user);
     } catch (err) {
       setError(err.message);
     }
-
     setLoading(false);
   };
 
-  // 🔹 Handle "Enter" key to trigger login
   const handleKeyDown = (event) => {
     if (event.key === "Enter") {
-      event.preventDefault(); // Prevent default form submission behavior
-      handleLogin();
+      event.preventDefault();
+      handleLogin("email");
     }
   };
 
@@ -63,68 +86,74 @@ const Login = ({ setUser }) => {
         justifyContent: "center",
         alignItems: "center",
         minHeight: "100vh",
-        minWidth: "100vw",
-        backgroundColor: "#F0F2F5",
+        backgroundColor: theme.palette.background.default,
+        color: theme.palette.text.primary,
+        p: 2,
       }}
     >
       <Box
         sx={{
-          width: "55%",
-          maxWidth: 1000,
-          backgroundColor: "#FFFFFF",
-          padding: 3,
-          borderRadius: 3,
+          width: "100%",
+          maxWidth: 400,
+          p: 4,
+          border: 2,
+          borderColor: theme.palette.divider,
+          borderRadius: 2,
           boxShadow: 3,
-          position: "relative",
+          textAlign: "center",
+          backgroundColor: theme.palette.background.paper,
         }}
       >
-        <h2>Login</h2>
+        <Typography variant="h5" fontWeight="bold" mb={2}>
+          Login
+        </Typography>
 
-        {/* Wrap inputs in a form to enable Enter key handling */}
-        <form onKeyDown={handleKeyDown}>
+        <Stack spacing={2} component="form" onKeyDown={handleKeyDown}>
           <TextField
             label="Email"
             type="email"
             fullWidth
-            margin="normal"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
           />
+          <PasswordField password={password} setPassword={setPassword} />
 
-          <TextField
-            label="Password"
-            type="password"
-            fullWidth
-            margin="normal"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-
-          <Box sx={{ marginTop: 2 }}>
+          <Box>
             {loading ? (
-              <CircularProgress />
+              <CircularProgress sx={{ alignSelf: "center" }} />
             ) : (
-              <Button variant="contained" color="primary" onClick={handleLogin}>
-                Login
-              </Button>
+              <Stack spacing={1}>
+                <Button
+                  variant="contained"
+                  color="primary"
+                  onClick={() => handleLogin("email")}
+                  fullWidth
+                >
+                  Login with Email
+                </Button>
+                <Button
+                  variant="outlined"
+                  color="primary"
+                  startIcon={<Google />}
+                  onClick={() => handleLogin("google")}
+                  fullWidth
+                >
+                  Login with Google
+                </Button>
+              </Stack>
             )}
           </Box>
-        </form>
+        </Stack>
       </Box>
 
-      {/* 🔹 Single Snackbar Notification for Access Denied */}
       <Snackbar
-        open={error}
+        open={!!error}
         autoHideDuration={5000}
-        onClose={() => setError(false)}
-        anchorOrigin={{ vertical: "top", horizontal: "center" }} // Positioning
+        onClose={() => setError("")}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
       >
-        <Alert
-          onClose={() => setError(false)}
-          severity="error"
-          variant="filled"
-        >
-          Access Denied! Contact Admin.
+        <Alert severity="error" variant="filled" onClose={() => setError("")}>
+          {error}
         </Alert>
       </Snackbar>
     </Box>
