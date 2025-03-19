@@ -9,19 +9,21 @@ A modern job application tracker built with **React**, **Vite**, and **Material-
 - [Prerequisites](#prerequisites)
 - [Installation & Setup](#installation--setup)
 - [Firebase Configuration](#firebase-configuration)
+- [Environment Variables](#environment-variables)
 - [Running the Project](#running-the-project)
+- [Deployment on Netlify](#deployment-on-netlify)
 
 ## Features
 
 - **Job Application Tracker:** Create, update, and delete job applications.
-- **Authentication:** Email/password login with restricted access (only allowed users in the Firestore `allowedUsers` collection).
+- **Authentication:** Google Sign-In and Email/Password login.
 - **User-Specific Data:** Each user can only access their own job applications.
 - **Dark Mode:** Toggle between light and dark themes.
 - **Persistent Storage:** Uses Firebase Firestore to store job applications with real-time syncing.
 - **Firebase Integration:** Uses Firebase Firestore for data and Firebase Authentication for secure login.
 - **Mobile-Friendly UI:** Fully responsive design for mobile and desktop.
 - **Continuous Deployment:** Deployed on Netlify for fast and reliable hosting.
-- **Ongoing Development:** Gmail integration for automated job tracking (coming soon).
+- **Automated Job Tracking:** Gmail integration for extracting job application details (coming soon).
 
 ## Tech Stack
 
@@ -45,7 +47,7 @@ Before running the project, ensure you have the following installed:
 - [Git](https://git-scm.com/)
 - A Firebase project set up with:
   - Firestore Database
-  - Email/Password Authentication enabled
+  - Authentication (Google & Email/Password Sign-In enabled)
 - A Netlify account (for deployment)
 - A GitHub repository (for version control and Netlify integration)
 
@@ -77,36 +79,8 @@ To integrate Firebase into the project:
    - Click **Create Database** and follow the setup steps.
 4. **Enable Authentication:**
    - Navigate to **Authentication** in the Firebase Console.
-   - Enable **Email/Password** authentication under the "Sign-in method" tab.
-5. **Create a Firebase Configuration File:**
-   - Inside the project directory, create a new file:  
-     `src/firebase.js`
-   - Add the following code:
-
-   ```js
-   import { initializeApp } from "firebase/app";
-   import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "firebase/auth";
-   import { getFirestore } from "firebase/firestore";
-
-   const firebaseConfig = {
-     apiKey: "YOUR_API_KEY",
-     authDomain: "YOUR_AUTH_DOMAIN",
-     projectId: "YOUR_PROJECT_ID",
-     storageBucket: "YOUR_STORAGE_BUCKET",
-     messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-     appId: "YOUR_APP_ID",
-   };
-
-   const app = initializeApp(firebaseConfig);
-   const auth = getAuth(app);
-   const db = getFirestore(app);
-
-   export { auth, db, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut };
-   ```
-
-   Replace the placeholder values with your actual Firebase project credentials found in **Firebase Console > Project Settings**.
-
-6. **Set Up Allowed Users in Firestore:**
+   - Enable **Google Sign-In** and **Email/Password Authentication** under the "Sign-in method" tab.
+5. **Set Up Allowed Users in Firestore:**
    - In Firebase Console, go to **Firestore Database**.
    - Create a **collection** named `allowedUsers`.
    - Inside the `allowedUsers` collection, add a **document**:
@@ -114,6 +88,26 @@ To integrate Firebase into the project:
      - Fields:
        - **email:** 'abc@test.com'
        - **access:** `true` (This ensures only approved users can log in)
+
+## Environment Variables
+
+To securely store Firebase credentials, set up an `.env` file locally and add the following:
+
+```env
+VITE_FIREBASE_API_KEY=your-api-key
+VITE_FIREBASE_AUTH_DOMAIN=your-auth-domain
+VITE_FIREBASE_PROJECT_ID=your-project-id
+VITE_FIREBASE_STORAGE_BUCKET=your-storage-bucket
+VITE_FIREBASE_MESSAGING_SENDER_ID=your-messaging-sender-id
+VITE_FIREBASE_APP_ID=your-app-id
+```
+
+### **Security Tip:**
+🚨 **Do not commit this file to GitHub!** Add `.env` to your `.gitignore`:
+
+```gitignore
+.env
+```
 
 ## Running the Project
 
@@ -134,4 +128,22 @@ To integrate Firebase into the project:
 
    This will generate optimized production files in the `dist/` folder.
 
----
+## Deployment on Netlify
+
+### **Set Environment Variables on Netlify:**
+1. Go to [Netlify Dashboard](https://app.netlify.com/).
+2. Select your project.
+3. Click **"Site settings"** → **"Environment variables"**.
+4. Add each variable from your `.env` file (without quotes):
+   - `VITE_FIREBASE_API_KEY`
+   - `VITE_FIREBASE_AUTH_DOMAIN`
+   - `VITE_FIREBASE_PROJECT_ID`
+   - `VITE_FIREBASE_STORAGE_BUCKET`
+   - `VITE_FIREBASE_MESSAGING_SENDER_ID`
+   - `VITE_FIREBASE_APP_ID`
+
+### **Trigger a New Deploy:**
+1. Go to **"Deploys"** in Netlify.
+2. Click **"Trigger deploy"** → "Deploy site".
+
+Once deployed, your app will be live on Netlify! 🚀
