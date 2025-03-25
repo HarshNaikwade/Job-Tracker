@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Loading...</title>
+  <meta name="description" content="Loading..." />
+  <meta name="author" content="Harsh Naikwade" />
+
+  <script type="module">
+    import { APP_NAME } from '/src/constants';
+
+    document.title = APP_NAME;
+
+    const metaUpdates = {
+      'meta[name="description"]': `${APP_NAME} - Job Application Tracker`,
+      'meta[name="author"]': 'Harsh Naikwade',
+      'meta[property="og:title"]': APP_NAME,
+      'meta[property="og:description"]': `${APP_NAME} helps you manage job applications, track interviews, and streamline your job search process.`
+    };
+
+
+    Object.entries(metaUpdates).forEach(([selector, content]) => {
+      document.querySelector(selector)?.setAttribute("content", content);
+    });
+  </script>
+</head>
+
+<body>
+  <div id="root"></div>
+  <script type="module" src="/src/main.tsx"></script>
+</body>
+
+</html>
