@@ -119,7 +119,7 @@ const ApplicationCard = ({ application, onEdit, onDelete }) => {
 
       <div className="mt-3 pt-2 border-t flex items-center justify-center text-xs text-foreground/50">
         <Clock className="w-3 h-3 mr-1" />
-        <span>Last Updated: {formatDate(application.updatedAt)}</span>
+        <span>Updated: {formatDate(application.updatedAt)}</span>
       </div>
     </motion.div>
   );

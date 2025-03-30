@@ -13,12 +13,14 @@ import {
 } from "../../services/firebase";
 import ApplicationCard from "./ApplicationCard";
 import ApplicationForm from "./ApplicationForm";
+
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import FloatingActionButton from "../ui/FloatingActionButton";
 import { Button } from "../ui/button";
 
 const Dashboard = () => {
   const { currentUser } = useAuth();
+
   const [applications, setApplications] = useState([]);
   const [filteredApplications, setFilteredApplications] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -42,9 +44,9 @@ const Dashboard = () => {
   const fetchApplications = async () => {
     try {
       setLoading(true);
-      setError(null);
       const fetchedApplications = await getApplications(currentUser.uid);
       setApplications(fetchedApplications);
+      setError(null);
     } catch (err) {
       console.error("Error fetching applications:", err);
 
@@ -276,38 +278,31 @@ const Dashboard = () => {
           ))}
         </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: 0.2 }}
-          className="bg-card rounded-lg shadow-sm border p-4 mb-6"
-        >
-          <div className="flex flex-wrap gap-3 items-center justify-between">
-            <div className="flex items-center gap-2">
-              <SortDesc className="w-4 h-4 text-foreground/70" />
-              <span className="text-sm font-medium">Sort:</span>
-              <select
-                value={sortOrder}
-                onChange={(e) => setSortOrder(e.target.value)}
-                className="text-sm bg-background border rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary/50"
-              >
-                <option value="lastUpdated">Last Updated</option>
-                <option value="newest">Newest First</option>
-                <option value="oldest">Oldest First</option>
-              </select>
-            </div>
-
-            <Button
-              onClick={resetFilters}
-              variant="ghost"
-              size="sm"
-              className="text-sm flex items-center gap-1 text-primary"
+        <div className="flex flex-wrap gap-3 items-center justify-between mb-3">
+          <div className="flex items-center justify-between gap-2">
+            <SortDesc className="w-4 h-4 text-foreground/70" />
+            <span className="text-sm font-medium">Sort:</span>
+            <select
+              value={sortOrder}
+              onChange={(e) => setSortOrder(e.target.value)}
+              className="text-sm bg-background border rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary/50"
             >
-              <RefreshCw className="w-3 h-3" />
-              Reset
-            </Button>
+              <option value="lastUpdated">Last Updated</option>
+              <option value="newest">Newest First</option>
+              <option value="oldest">Oldest First</option>
+            </select>
           </div>
-        </motion.div>
+
+          <Button
+            onClick={resetFilters}
+            variant="ghost"
+            size="sm"
+            className="text-sm flex items-center gap-1 text-primary"
+          >
+            <RefreshCw className="w-3 h-3" />
+            Reset
+          </Button>
+        </div>
 
         {loading ? (
           <div className="flex justify-center items-center py-12">
