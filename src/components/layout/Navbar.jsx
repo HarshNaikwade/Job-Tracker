@@ -1,19 +1,28 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Menu, X, LogOut, Briefcase } from "lucide-react";
+import { Menu, X, LogOut, Briefcase, User } from "lucide-react";
 
 import ThemeToggle from "./ThemeToggle";
 import { useAuth } from "../../context/AuthContext";
 import { APP_NAME } from "../../constants";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const { isAuthenticated, logout } = useAuth();
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const { isAuthenticated, logout, currentUser } = useAuth();
   const location = useLocation();
+  const dropdownRef = useRef(null);
 
   // Close mobile menu on route change
   useEffect(() => {
     setIsOpen(false);
+    setIsDropdownOpen(false);
   }, [location]);
 
   // Close mobile menu when clicking outside
@@ -22,11 +31,19 @@ const Navbar = () => {
       if (isOpen && !e.target.closest("nav")) {
         setIsOpen(false);
       }
+
+      if (
+        isDropdownOpen &&
+        dropdownRef.current &&
+        !dropdownRef.current.contains(e.target)
+      ) {
+        setIsDropdownOpen(false);
+      }
     };
 
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [isOpen]);
+  }, [isOpen, isDropdownOpen]);
 
   // Add blur effect to nav on scroll
   const [scrolled, setScrolled] = useState(false);
@@ -41,6 +58,12 @@ const Navbar = () => {
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, [scrolled]);
+
+  // Get user initials for avatar
+  const getUserInitials = () => {
+    if (!currentUser || !currentUser.email) return "U";
+    return currentUser.email.charAt(0).toUpperCase();
+  };
 
   return (
     <header
@@ -63,13 +86,45 @@ const Navbar = () => {
         <div className="hidden md:flex items-center space-x-8">
           <ThemeToggle />
           {isAuthenticated && (
-            <button
-              onClick={logout}
-              className="flex items-center space-x-1 text-foreground/80 hover:text-primary transition-colors"
-            >
-              <LogOut className="w-4 h-4" />
-              <span>Logout</span>
-            </button>
+            <div className="relative" ref={dropdownRef}>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                      className="flex items-center justify-center w-9 h-9 rounded-full bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors"
+                      aria-label="User menu"
+                    >
+                      {getUserInitials()}
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Your account</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+
+              {/* User Dropdown */}
+              {isDropdownOpen && (
+                <div className="absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-background border z-50">
+                  <div className="py-2">
+                    <div className="px-4 py-2 border-b">
+                      <p className="text-sm font-medium">User</p>
+                      <p className="text-xs text-muted-foreground truncate">
+                        {currentUser?.email}
+                      </p>
+                    </div>
+                    <button
+                      onClick={logout}
+                      className="w-full text-left px-4 py-2 text-sm flex items-center space-x-2 hover:bg-muted transition-colors"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      <span>Logout</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           )}
         </div>
 
@@ -99,13 +154,27 @@ const Navbar = () => {
           }`}
         >
           <div className="page-container py-4 space-y-4">
-            <button
-              onClick={logout}
-              className="flex items-center space-x-2 py-2 text-foreground/80 hover:text-primary transition-colors"
-            >
-              <LogOut className="w-4 h-4" />
-              <span>Logout</span>
-            </button>
+            <div className="border-b pb-2 mb-2">
+              <div className="flex items-center space-x-3">
+                <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center">
+                  {getUserInitials()}
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground truncate">
+                    {currentUser?.email}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center space-x-3" onClick={logout}>
+              <button
+                onClick={logout}
+                className="flex items-center space-x-2 py-2 text-foreground/80 hover:text-primary transition-colors"
+              >
+                <LogOut className="w-4 h-4" />
+                <span>Logout</span>
+              </button>
+            </div>
           </div>
         </div>
       )}

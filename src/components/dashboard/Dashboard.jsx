@@ -5,6 +5,7 @@ import {
   MailIcon,
   LayoutDashboard,
   ListFilter,
+  Search,
 } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 
@@ -23,6 +24,7 @@ import ApplicationStats from "./ApplicationStats";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 import { useToast } from "@/hooks/use-toast";
 
@@ -35,6 +37,7 @@ const Dashboard = () => {
   const [currentApplication, setCurrentApplication] = useState(null);
   const [filterStatus, setFilterStatus] = useState("All");
   const [activeTab, setActiveTab] = useState("applications");
+  const [searchTerm, setSearchTerm] = useState("");
 
   const { currentUser } = useAuth();
   const { toast } = useToast();
@@ -44,16 +47,27 @@ const Dashboard = () => {
     fetchApplications();
   }, [currentUser]);
 
-  // Filter applications when the list or filter changes
+  // Filter applications when the list, filter, or search query changes
   useEffect(() => {
-    if (filterStatus === "All") {
-      setFilteredApplications(applications);
-    } else {
-      setFilteredApplications(
-        applications.filter((app) => app.status === filterStatus)
+    let filtered = applications;
+
+    // Apply status filter
+    if (filterStatus !== "All") {
+      filtered = filtered.filter((app) => app.status === filterStatus);
+    }
+
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      filtered = filtered.filter(
+        (app) =>
+          app.companyName.toLowerCase().includes(term) ||
+          app.jobRole.toLowerCase().includes(term) ||
+          (app.notes && app.notes.toLowerCase().includes(term))
       );
     }
-  }, [applications, filterStatus]);
+
+    setFilteredApplications(filtered);
+  }, [applications, filterStatus, searchTerm]);
 
   // Fetch applications from Firestore
   const fetchApplications = async () => {
@@ -194,13 +208,24 @@ const Dashboard = () => {
             <LayoutDashboard className="w-4 h-4 mr-2" />
             Applications
           </TabsTrigger>
-          <TabsTrigger value="integrations" className="flex items-center">
+          {/* <TabsTrigger value="integrations" className="flex items-center">
             <MailIcon className="w-4 h-4 mr-2" />
             Gmail Integration
-          </TabsTrigger>
+          </TabsTrigger> */}
         </TabsList>
 
         <TabsContent value="applications" className="space-y-6">
+          {/* Search Bar */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+            <Input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search by company, position, or location"
+              className="pl-10"
+            />
+          </div>
           {/* Application Stats */}
           {!loading && applications.length > 0 && (
             <ApplicationStats applications={applications} />
@@ -249,11 +274,13 @@ const Dashboard = () => {
                 No applications found
               </h3>
               <p className="text-muted-foreground mb-4">
-                {filterStatus === "All"
+                {searchTerm.trim() !== ""
+                  ? "No applications match your search."
+                  : filterStatus === "All"
                   ? "You haven't added any job applications yet."
                   : `You don't have any ${filterStatus} applications.`}
               </p>
-              {filterStatus === "All" && (
+              {filterStatus === "All" && searchTerm.trim() === "" && (
                 <Button onClick={handleOpenForm}>
                   <PlusIcon className="w-4 h-4 mr-2" />
                   Add Your First Application
