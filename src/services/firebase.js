@@ -5,6 +5,10 @@ import {
   signInWithEmailAndPassword,
   signOut,
   onAuthStateChanged,
+  GoogleAuthProvider,
+  signInWithPopup,
+  sendPasswordResetEmail as firebaseSendPasswordResetEmail,
+  confirmPasswordReset as firebaseConfirmPasswordReset,
 } from "firebase/auth";
 import {
   getFirestore,
@@ -21,6 +25,7 @@ import {
   serverTimestamp,
 } from "firebase/firestore";
 
+// Firebase configuration
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
@@ -34,6 +39,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
+const googleProvider = new GoogleAuthProvider();
 
 // Authentication helpers
 export const registerUser = (email, password) => {
@@ -42,6 +48,21 @@ export const registerUser = (email, password) => {
 
 export const loginUser = (email, password) => {
   return signInWithEmailAndPassword(auth, email, password);
+};
+
+export const loginWithGoogle = () => {
+  googleProvider.setCustomParameters({ prompt: "select_account" });
+  return signInWithPopup(auth, googleProvider);
+};
+
+export const sendPasswordResetEmail = async (email) => {
+  const auth = getAuth();
+  return await firebaseSendPasswordResetEmail(auth, email);
+};
+
+export const confirmPasswordReset = async (oobCode, newPassword) => {
+  const auth = getAuth();
+  return await firebaseConfirmPasswordReset(auth, oobCode, newPassword);
 };
 
 export const logoutUser = () => {
@@ -198,10 +219,10 @@ export const deleteApplication = async (applicationId) => {
 
 export const APPLICATION_STATUS = {
   APPLIED: "Applied",
-  IN_PROGRESS: "In Progress",
+  IN_PROGRESS: "Interviewing",
   WAITING: "Waiting",
   REJECTED: "Rejected",
-  APPROVED: "Approved",
+  APPROVED: "Offer",
 };
 
 export { app, auth, db };

@@ -68,7 +68,7 @@ const ApplicationCard = ({ application, onEdit, onDelete }) => {
           </p>
         </div>
 
-        <div className="relative" ref={menuRef}>
+        <div className="relative">
           <button
             onClick={() => setShowActions(!showActions)}
             className="p-1 rounded-full hover:bg-foreground/10 transition-colors"

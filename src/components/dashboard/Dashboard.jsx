@@ -1,6 +1,11 @@
 import { useState, useEffect } from "react";
-import { SortDesc, Plus, Search, RefreshCw } from "lucide-react";
-import { toast } from "sonner";
+import {
+  PlusIcon,
+  LoaderIcon,
+  MailIcon,
+  LayoutDashboard,
+  ListFilter,
+} from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 
 import { useAuth } from "../../context/AuthContext";
@@ -13,34 +18,44 @@ import {
 } from "../../services/firebase";
 import ApplicationCard from "./ApplicationCard";
 import ApplicationForm from "./ApplicationForm";
+import GmailIntegration from "./GmailIntegration";
+import ApplicationStats from "./ApplicationStats";
 
-import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
-import FloatingActionButton from "../ui/FloatingActionButton";
-import { Button } from "../ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+
+import { useToast } from "@/hooks/use-toast";
 
 const Dashboard = () => {
-  const { currentUser } = useAuth();
-
   const [applications, setApplications] = useState([]);
   const [filteredApplications, setFilteredApplications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [showForm, setShowForm] = useState(false);
+  const [isFormOpen, setIsFormOpen] = useState(false);
   const [currentApplication, setCurrentApplication] = useState(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [filterStatus, setFilterStatus] = useState("All");
+  const [activeTab, setActiveTab] = useState("applications");
 
-  // Filtering and sorting
-  const [selectedStatus, setSelectedStatus] = useState("All");
-  const [searchTerm, setSearchTerm] = useState("");
-  const [sortOrder, setSortOrder] = useState("lastUpdated");
+  const { currentUser } = useAuth();
+  const { toast } = useToast();
 
-  // Stats
-  const [stats, setStats] = useState({
-    total: 0,
-    byStatus: {},
-  });
+  // Load applications on component mount
+  useEffect(() => {
+    fetchApplications();
+  }, [currentUser]);
 
-  // Fetch applications
+  // Filter applications when the list or filter changes
+  useEffect(() => {
+    if (filterStatus === "All") {
+      setFilteredApplications(applications);
+    } else {
+      setFilteredApplications(
+        applications.filter((app) => app.status === filterStatus)
+      );
+    }
+  }, [applications, filterStatus]);
+
+  // Fetch applications from Firestore
   const fetchApplications = async () => {
     try {
       setLoading(true);
@@ -49,365 +64,251 @@ const Dashboard = () => {
       setError(null);
     } catch (err) {
       console.error("Error fetching applications:", err);
-
-      // Give more specific error message for the index error
-      if (err.code === "failed-precondition" && err.message.includes("index")) {
-        setError(
-          "This query requires a Firestore index. Please click the link in the console error to create it, then refresh."
-        );
-        toast.error("Firebase index required. See console for details.", {
-          description:
-            "Click the link in the console error to create the needed index.",
-        });
-      } else {
-        setError("Failed to load your applications");
-        toast.error("Failed to load applications");
-      }
+      setError("Failed to load your job applications. Please try again.");
+      toast({
+        title: "Error",
+        description: "Failed to load your job applications",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    if (currentUser) {
-      fetchApplications();
-    }
-  }, [currentUser]);
-
-  // Recalculate stats whenever applications change
-  useEffect(() => {
-    const statusCounts = {};
-    Object.values(APPLICATION_STATUS).forEach((status) => {
-      statusCounts[status] = applications.filter(
-        (app) => app.status === status
-      ).length;
-    });
-    setStats({
-      total: applications.length,
-      byStatus: statusCounts,
-    });
-  }, [applications]);
-
-  // Apply filters and sorting
-  useEffect(() => {
-    let result = [...applications];
-
-    // Apply status filter
-    if (selectedStatus !== "All") {
-      result = result.filter((app) => app.status === selectedStatus);
-    }
-
-    // Apply search
-    if (searchTerm) {
-      const term = searchTerm.toLowerCase();
-      result = result.filter(
-        (app) =>
-          app.companyName.toLowerCase().includes(term) ||
-          app.jobRole.toLowerCase().includes(term) ||
-          (app.notes && app.notes.toLowerCase().includes(term))
-      );
-    }
-
-    // Apply sorting
-    result.sort((a, b) => {
-      if (sortOrder === "newest") {
-        const dateA = new Date(a.dateApplied || a.createdAt);
-        const dateB = new Date(b.dateApplied || b.createdAt);
-        return dateB - dateA; // newest first
-      } else if (sortOrder === "oldest") {
-        const dateA = new Date(a.dateApplied || a.createdAt);
-        const dateB = new Date(b.dateApplied || b.createdAt);
-        return dateA - dateB; // oldest first
-      } else if (sortOrder === "lastUpdated") {
-        const dateA = new Date(a.updatedAt || a.createdAt);
-        const dateB = new Date(b.updatedAt || b.createdAt);
-        return dateB - dateA; // most recently updated first
-      }
-      return 0;
-    });
-
-    setFilteredApplications(result);
-  }, [applications, selectedStatus, searchTerm, sortOrder]);
-
-  // Handle form submission
-  const handleSubmit = async (formData) => {
+  // Handle adding a new application
+  const handleAddApplication = async (data) => {
     try {
-      setIsSubmitting(true);
-
-      if (currentApplication) {
-        // Update existing application
-        await updateApplication(currentApplication.id, formData);
-        setApplications((prev) =>
-          prev.map((app) =>
-            app.id === currentApplication.id
-              ? { ...app, ...formData, updatedAt: new Date() }
-              : app
-          )
-        );
-        toast.success("Application updated successfully");
-      } else {
-        // Add new application
-        const newAppRef = await addApplication(currentUser.uid, formData);
-        const newApp = {
-          id: newAppRef.id,
-          ...formData,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        };
-        setApplications((prev) => [newApp, ...prev]);
-        toast.success("Application added successfully");
-      }
-
-      setShowForm(false);
-      setCurrentApplication(null);
+      setLoading(true);
+      await addApplication(currentUser.uid, data);
+      setIsFormOpen(false);
+      toast({
+        title: "Success",
+        description: "Job application added successfully",
+      });
+      await fetchApplications();
     } catch (err) {
-      console.error("Error saving application:", err);
-      toast.error(
-        currentApplication
-          ? "Failed to update application"
-          : "Failed to add application"
-      );
+      console.error("Error adding application:", err);
+      toast({
+        title: "Error",
+        description: "Failed to add job application",
+        variant: "destructive",
+      });
     } finally {
-      setIsSubmitting(false);
+      setLoading(false);
     }
   };
 
-  // Handle application deletion
-  const handleDelete = async (id) => {
-    if (window.confirm("Are you sure you want to delete this application?")) {
-      try {
-        await deleteApplication(id);
-        setApplications((prev) => prev.filter((app) => app.id !== id));
-        toast.success("Application deleted successfully");
-      } catch (err) {
-        console.error("Error deleting application:", err);
-        toast.error("Failed to delete application");
-      }
+  // Handle updating an application
+  const handleUpdateApplication = async (data) => {
+    try {
+      setLoading(true);
+      await updateApplication(currentApplication.id, data);
+      setIsFormOpen(false);
+      setCurrentApplication(null);
+      toast({
+        title: "Success",
+        description: "Job application updated successfully",
+      });
+      await fetchApplications();
+    } catch (err) {
+      console.error("Error updating application:", err);
+      toast({
+        title: "Error",
+        description: "Failed to update job application",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
-  // Handle editing an application
-  const handleEdit = (application) => {
+  // Handle deleting an application
+  const handleDeleteApplication = async (id) => {
+    try {
+      setLoading(true);
+      await deleteApplication(id);
+      toast({
+        title: "Success",
+        description: "Job application deleted successfully",
+      });
+      await fetchApplications();
+    } catch (err) {
+      console.error("Error deleting application:", err);
+      toast({
+        title: "Error",
+        description: "Failed to delete job application",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Open form to edit an application
+  const handleEditApplication = (application) => {
     setCurrentApplication(application);
-    setShowForm(true);
+    setIsFormOpen(true);
   };
 
-  // Reset filters
-  const resetFilters = () => {
-    setSelectedStatus("All");
-    setSearchTerm("");
-    setSortOrder("lastUpdated");
+  // Close the form dialog
+  const handleCloseForm = () => {
+    setIsFormOpen(false);
+    setCurrentApplication(null);
   };
 
-  const container = {
-    hidden: { opacity: 0 },
-    show: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1,
-      },
-    },
+  // Open form to add a new application
+  const handleOpenForm = () => {
+    setCurrentApplication(null);
+    setIsFormOpen(true);
   };
 
   return (
-    <div className="min-h-screen pt-24 pb-16 px-4 md:px-6">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="max-w-6xl mx-auto"
+    <div className="page-container pt-20 pb-16 ">
+      {/* Dashboard Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">
+            Job Applications
+          </h1>
+          <p className="text-muted-foreground mt-1">
+            Track and manage your job search process
+          </p>
+        </div>
+
+        <div className="hidden md:block mt-4 sm:mt-0 items-center ">
+          <Button onClick={handleOpenForm} className="flex items-center">
+            <PlusIcon className="w-4 h-4 mr-2" />
+            Add Application
+          </Button>
+        </div>
+      </div>
+
+      {/* Main Content Tabs */}
+      <Tabs
+        defaultValue="applications"
+        value={activeTab}
+        onValueChange={setActiveTab}
       >
-        <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">
-              Job Applications
-            </h1>
-            <p className="text-foreground/70 mt-1">
-              {applications.length} application
-              {applications.length !== 1 ? "s" : ""} in total
-            </p>
-          </div>
+        <TabsList className="mb-6">
+          <TabsTrigger value="applications" className="flex items-center">
+            <LayoutDashboard className="w-4 h-4 mr-2" />
+            Applications
+          </TabsTrigger>
+          <TabsTrigger value="integrations" className="flex items-center">
+            <MailIcon className="w-4 h-4 mr-2" />
+            Gmail Integration
+          </TabsTrigger>
+        </TabsList>
 
-          <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-foreground/50" />
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Search applications..."
-                className="pl-9 pr-4 py-2 w-full sm:w-64 rounded-md border bg-background/90 focus:outline-none focus:ring-2 focus:ring-primary/50"
-              />
+        <TabsContent value="applications" className="space-y-6">
+          {/* Application Stats */}
+          {!loading && applications.length > 0 && (
+            <ApplicationStats applications={applications} />
+          )}
+
+          {/* Status Filter */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <ListFilter className="w-4 h-4 text-muted-foreground" />
+              <span className="text-sm font-medium">Filter by status:</span>
             </div>
-          </div>
-        </div>
 
-        {/* Status Cards */}
-        <div className="grid grid-cols-3 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, delay: 0.1 }}
-            className={`bg-primary/10 border border-primary/20 p-4 rounded-lg cursor-pointer ${
-              selectedStatus === "All" ? "ring-2 ring-primary" : ""
-            }`}
-            onClick={() => setSelectedStatus("All")}
-          >
-            <div className="flex justify-between items-center">
-              <h3 className="font-medium">All</h3>
-              <span className="text-lg font-bold">{stats.total}</span>
-            </div>
-          </motion.div>
-
-          {Object.entries(stats.byStatus).map(([status, count], index) => (
-            <motion.div
-              key={status}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: 0.1 + index * 0.05 }}
-              className={`bg-card border p-4 rounded-lg cursor-pointer hover:bg-muted/50 transition-colors ${
-                selectedStatus === status ? "ring-2 ring-primary" : ""
-              }`}
-              onClick={() => setSelectedStatus(status)}
-            >
-              <div className="flex justify-between items-center">
-                <h3 className="font-medium">{status}</h3>
-                <span className="text-lg font-bold">{count}</span>
-              </div>
-            </motion.div>
-          ))}
-        </div>
-
-        <div className="flex flex-wrap gap-3 items-center justify-between mb-3">
-          <div className="flex items-center justify-between gap-2">
-            <SortDesc className="w-4 h-4 text-foreground/70" />
-            <span className="text-sm font-medium">Sort:</span>
             <select
-              value={sortOrder}
-              onChange={(e) => setSortOrder(e.target.value)}
-              className="text-sm bg-background border rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-primary/50"
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+              className="border rounded p-1 text-sm bg-background"
             >
-              <option value="lastUpdated">Last Updated</option>
-              <option value="newest">Newest First</option>
-              <option value="oldest">Oldest First</option>
+              <option value="All">All Applications</option>
+              {Object.values(APPLICATION_STATUS).map((status) => (
+                <option key={status} value={status}>
+                  {status}
+                </option>
+              ))}
             </select>
           </div>
 
-          <Button
-            onClick={resetFilters}
-            variant="ghost"
-            size="sm"
-            className="text-sm flex items-center gap-1 text-primary"
-          >
-            <RefreshCw className="w-3 h-3" />
-            Reset
-          </Button>
-        </div>
-
-        {loading ? (
-          <div className="flex justify-center items-center py-12">
-            <div className="flex flex-col items-center">
-              <motion.div
-                animate={{
-                  rotate: 360,
-                }}
-                transition={{
-                  duration: 1.5,
-                  ease: "linear",
-                  repeat: Infinity,
-                }}
-                className="w-10 h-10 border-4 border-primary/30 border-t-primary rounded-full"
-              ></motion.div>
-              <p className="mt-4 text-foreground/70">
-                Loading your applications...
-              </p>
+          {/* Applications List */}
+          {loading && applications.length === 0 ? (
+            <div className="flex justify-center py-12">
+              <LoaderIcon className="w-8 h-8 animate-spin text-primary/70" />
             </div>
-          </div>
-        ) : error ? (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="bg-destructive/10 text-destructive p-6 rounded-lg text-center"
-          >
-            <p>{error}</p>
-            <Button onClick={fetchApplications} className="mt-4">
-              Try Again
-            </Button>
-          </motion.div>
-        ) : filteredApplications.length === 0 ? (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-card rounded-lg border p-8 text-center"
-          >
-            {applications.length === 0 ? (
-              <>
-                <h3 className="text-xl font-semibold mb-2">
-                  No applications yet
-                </h3>
-                <p className="text-foreground/70 mb-6">
-                  Start by adding your first job application.
-                </p>
-                <Button onClick={() => setShowForm(true)}>
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add Application
+          ) : error ? (
+            <div className="bg-destructive/10 text-destructive p-4 rounded-md">
+              <p>{error}</p>
+              <Button
+                variant="outline"
+                className="mt-2"
+                onClick={fetchApplications}
+              >
+                Try Again
+              </Button>
+            </div>
+          ) : filteredApplications.length === 0 ? (
+            <div className="bg-muted py-12 px-4 rounded-lg text-center">
+              <h3 className="text-lg font-medium mb-2">
+                No applications found
+              </h3>
+              <p className="text-muted-foreground mb-4">
+                {filterStatus === "All"
+                  ? "You haven't added any job applications yet."
+                  : `You don't have any ${filterStatus} applications.`}
+              </p>
+              {filterStatus === "All" && (
+                <Button onClick={handleOpenForm}>
+                  <PlusIcon className="w-4 h-4 mr-2" />
+                  Add Your First Application
                 </Button>
-              </>
-            ) : (
-              <>
-                <h3 className="text-xl font-semibold mb-2">
-                  No matching applications
-                </h3>
-                <p className="text-foreground/70 mb-6">
-                  Try adjusting your filters to see more results.
-                </p>
-                <Button onClick={resetFilters}>
-                  <RefreshCw className="w-4 h-4 mr-2" />
-                  Reset Filters
-                </Button>
-              </>
-            )}
-          </motion.div>
-        ) : (
-          <motion.div
-            variants={container}
-            initial="hidden"
-            animate="show"
-            className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-3 gap-4"
-          >
-            <AnimatePresence>
+              )}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {filteredApplications.map((application) => (
                 <ApplicationCard
                   key={application.id}
                   application={application}
-                  onEdit={handleEdit}
-                  onDelete={handleDelete}
+                  onEdit={handleEditApplication}
+                  onDelete={handleDeleteApplication}
                 />
               ))}
-            </AnimatePresence>
-          </motion.div>
-        )}
-      </motion.div>
+            </div>
+          )}
+        </TabsContent>
 
-      {/* Add Floating Action Button */}
-      <div>
-        <FloatingActionButton onClick={() => setShowForm(true)} />
-      </div>
+        {/* Gmail Integration Tab */}
+        <TabsContent value="integrations">
+          <GmailIntegration />
+        </TabsContent>
+      </Tabs>
 
-      {/* Application Form Modal */}
+      {/* Application Form Dialog - Outside TabsContent so it's visible regardless of active tab */}
       <AnimatePresence>
-        {showForm && (
+        {isFormOpen && (
           <ApplicationForm
             application={currentApplication}
-            onSubmit={handleSubmit}
-            onCancel={() => {
-              setShowForm(false);
-              setCurrentApplication(null);
-            }}
-            isLoading={isSubmitting}
+            onSubmit={
+              currentApplication
+                ? handleUpdateApplication
+                : handleAddApplication
+            }
+            onCancel={handleCloseForm}
           />
         )}
       </AnimatePresence>
+
+      <motion.div
+        className="fixed right-6 bottom-6 md:hidden"
+        initial={{ scale: 0.8, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ delay: 0.2 }}
+      >
+        <Button
+          onClick={handleOpenForm}
+          size="icon"
+          className="w-12 h-12 rounded-full shadow-lg"
+        >
+          <PlusIcon className="w-5 h-5" />
+        </Button>
+      </motion.div>
     </div>
   );
 };

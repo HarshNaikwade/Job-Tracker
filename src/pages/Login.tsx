@@ -2,10 +2,10 @@ import { Navigate } from "react-router-dom";
 import { motion } from "framer-motion";
 
 import Navbar from "../components/layout/Navbar";
-import ResetPasswordForm from "../components/auth/ResetPasswordForm";
+import LoginForm from "../components/auth/LoginForm";
 import { useAuth } from "../context/AuthContext";
 
-const ResetPassword = () => {
+const Login = () => {
   const { isAuthenticated } = useAuth();
 
   // Redirect if already logged in
@@ -22,7 +22,7 @@ const ResetPassword = () => {
       className="min-h-screen flex flex-col bg-background"
     >
       <Navbar />
-      <div className="flex-1 flex items-center justify-center p-4">
+      <div className="flex-1 flex items-center justify-center p-4 ">
         <div className="w-full max-w-6xl mx-auto grid md:grid-cols-2 gap-8 items-center">
           <motion.div
             initial={{ opacity: 0, x: -50 }}
@@ -31,35 +31,45 @@ const ResetPassword = () => {
             className="hidden md:flex flex-col space-y-6 p-8"
           >
             <h1 className="text-4xl font-bold tracking-tight">
-              Reset Your Password
+              Track Your Job Applications
             </h1>
             <p className="text-lg text-muted-foreground">
-              Forgot your password? Don't worry, it happens to the best of us.
-              Enter your email address and we'll send you a secure link to reset
-              your password.
+              Stay organized and never miss an opportunity with our job tracking
+              dashboard. Sign in to manage your applications and get insights on
+              your job search.
             </p>
-            <div className="grid grid-cols-1 gap-4 mt-4">
+            <div className="grid grid-cols-2 gap-4 mt-4">
               <div className="bg-primary/5 p-4 rounded-lg">
-                <h3 className="font-medium mb-2">Secure Process</h3>
+                <h3 className="font-medium mb-2">Track Progress</h3>
                 <p className="text-sm text-muted-foreground">
-                  We use a secure, time-limited link to help you reset your
-                  password safely
+                  Monitor all your applications in one place
                 </p>
               </div>
               <div className="bg-primary/5 p-4 rounded-lg">
-                <h3 className="font-medium mb-2">Need Help?</h3>
+                <h3 className="font-medium mb-2">Smart Parsing</h3>
                 <p className="text-sm text-muted-foreground">
-                  If you're having trouble resetting your password, please
-                  contact our support team
+                  Automatically extract job data from emails
+                </p>
+              </div>
+              <div className="bg-primary/5 p-4 rounded-lg">
+                <h3 className="font-medium mb-2">Status Updates</h3>
+                <p className="text-sm text-muted-foreground">
+                  Keep track of your application statuses
+                </p>
+              </div>
+              <div className="bg-primary/5 p-4 rounded-lg">
+                <h3 className="font-medium mb-2">Cross-Device</h3>
+                <p className="text-sm text-muted-foreground">
+                  Access your data on any device
                 </p>
               </div>
             </div>
           </motion.div>
-          <ResetPasswordForm />
+          <LoginForm />
         </div>
       </div>
     </motion.div>
   );
 };
 
-export default ResetPassword;
+export default Login;

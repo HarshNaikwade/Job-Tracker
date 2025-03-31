@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useLocation } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { Menu, X, LogOut, Briefcase } from "lucide-react";
 
 import ThemeToggle from "./ThemeToggle";
@@ -52,12 +52,12 @@ const Navbar = () => {
     >
       <nav className="page-container flex items-center justify-between py-4">
         {/* Logo and Brand */}
-        <div className="flex items-center space-x-2 text-primary">
+        <Link to={"/"} className="flex items-center space-x-2 text-primary">
           <Briefcase className="w-6 h-6" />
           <span className="text-xl font-semibold tracking-tight">
             {APP_NAME}
           </span>
-        </div>
+        </Link>
 
         {/* Desktop Menu */}
         <div className="hidden md:flex items-center space-x-8">

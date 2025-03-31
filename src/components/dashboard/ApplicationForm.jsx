@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { X } from "lucide-react";
-
 import { APPLICATION_STATUS } from "../../services/firebase";
 
 const ApplicationForm = ({

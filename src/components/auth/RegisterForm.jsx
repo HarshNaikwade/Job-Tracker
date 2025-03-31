@@ -107,8 +107,16 @@ const RegisterForm = () => {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
-      className="w-full max-w-md mx-auto p-8 bg-card shadow-lg rounded-xl mt-20"
+      className="w-full max-w-md mx-auto p-8 bg-card shadow-lg rounded-xl mt-16"
     >
+      <Button
+        variant="outline"
+        size="sm"
+        style={{ position: "absolute" }}
+        onClick={() => navigate("/")}
+      >
+        <ArrowLeft className="w-4 h-4" />
+      </Button>
       <div className="flex justify-center mb-8">
         <div className="p-3 bg-primary/10 rounded-full">
           <UserPlus className="w-8 h-8 text-primary" />
@@ -126,16 +134,6 @@ const RegisterForm = () => {
           <p>{error}</p>
         </motion.div>
       )}
-
-      <Button
-        variant="outline"
-        size="sm"
-        className="mb-4"
-        onClick={() => navigate("/")}
-      >
-        <ArrowLeft className="w-4 h-4 mr-2" />
-        Back to Home
-      </Button>
 
       <form onSubmit={handleSubmit} className="space-y-5">
         <div className="space-y-2">
