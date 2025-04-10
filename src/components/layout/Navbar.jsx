@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Menu, X, LogOut, Briefcase, User } from "lucide-react";
+import { Menu, X, LogOut } from "lucide-react";
 
 import ThemeToggle from "./ThemeToggle";
 import { useAuth } from "../../context/AuthContext";
-import { APP_NAME } from "../../constants";
+import { APP_ICON_SRC, APP_NAME } from "../../constants";
 import {
   Tooltip,
   TooltipContent,
@@ -76,7 +76,7 @@ const Navbar = () => {
       <nav className="page-container flex items-center justify-between py-4">
         {/* Logo and Brand */}
         <Link to={"/"} className="flex items-center space-x-2 text-primary">
-          <Briefcase className="w-6 h-6" />
+          <img src={APP_ICON_SRC} alt="App Icon" className="h-8 w-8" />
           <span className="text-xl font-semibold tracking-tight">
             {APP_NAME}
           </span>

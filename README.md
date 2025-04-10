@@ -1,8 +1,8 @@
-# JobTrackr
+# JobSailor
 
-![JobTrackr Logo](https://img.shields.io/badge/JobTrackr-Job%20Application%20Tracker-blue)
+![GitHub](https://img.shields.io/github/license/harshnaikwade/jobsailor)
 
-JobTrackr is a comprehensive job application tracking platform designed to help job seekers organize their job search process. Keep track of all your applications, interviews, and job opportunities in one centralized location.
+JobSailor is a comprehensive job application tracking platform designed to help job seekers organize their job search process. Keep track of all your applications, interviews, and job opportunities in one centralized location.
 
 ## Features
 
@@ -34,12 +34,14 @@ JobTrackr is a comprehensive job application tracking platform designed to help 
 ### Installation
 
 1. Clone the repository:
+
    ```bash
-   git clone <your-repository-url>
-   cd jobtrackr
+   git clone https://github.com/HarshNaikwade/JobSailor.git
+   cd jobsailor
    ```
 
 2. Install dependencies:
+
    ```bash
    npm install
    # or
@@ -49,6 +51,7 @@ JobTrackr is a comprehensive job application tracking platform designed to help 
    ```
 
 3. Start the development server:
+
    ```bash
    npm run dev
    # or
@@ -59,7 +62,7 @@ JobTrackr is a comprehensive job application tracking platform designed to help 
 
 4. Open your browser and navigate to:
    ```
-   http://localhost:8080
+   http://localhost:5173
    ```
 
 ## Firebase Configuration
@@ -91,6 +94,7 @@ The project is configured to work with Firebase. You can use the existing Fireba
 The application can be deployed to any static site hosting service:
 
 1. Build the production version:
+
    ```bash
    npm run build
    # or
@@ -100,10 +104,6 @@ The application can be deployed to any static site hosting service:
    ```
 
 2. Deploy the content of the `dist` folder to your hosting service of choice (Netlify, Vercel, Firebase Hosting, etc.)
-
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
 
 ## Acknowledgments
 

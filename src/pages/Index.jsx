@@ -1,8 +1,8 @@
 import { Link } from "react-router-dom";
-import { CheckCircle, ArrowRight, Briefcase } from "lucide-react";
+import { CheckCircle, ArrowRight } from "lucide-react";
 
 import Navbar from "../components/layout/Navbar";
-import { APP_NAME } from "../constants";
+import { APP_ICON_SRC, APP_NAME } from "../constants";
 
 const features = [
   {
@@ -185,7 +185,11 @@ const Index = () => {
         <div className="max-w-6xl mx-auto">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <div className="flex items-center mb-4 md:mb-0">
-              <Briefcase className="w-5 h-5 text-primary mr-2" />
+              <img
+                src={APP_ICON_SRC}
+                alt="App Icon"
+                className="w-6 h-6 text-primary mr-2"
+              />
               <span className="text-lg font-semibold">{APP_NAME}</span>
             </div>
 

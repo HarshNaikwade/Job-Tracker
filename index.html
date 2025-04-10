@@ -4,14 +4,22 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>JobTrackr</title>
-  <meta name="description" content="JobTrackr - Job Application Tracker" />
+  <title>JobSailor</title>
+  <meta name="description" content="JobSailor - Job Application Tracker" />
   <meta name="author" content="Harsh Naikwade" />
 
-  <meta property="og:title" content="JobTrackr" />
-  <meta property="og:description" content="JobTrackr - Job Application Tracker" />
+  <meta property="og:title" content="JobSailor" />
+  <meta property="og:description" content="JobSailor - Job Application Tracker" />
   <meta property="og:type" content="website" />
-  <meta property="og:image" content="" />
+  <meta property="og:image" content="/favicon-96x96.png" />
+
+
+  <link rel="icon" type="image/png" href="/favicon-96x96.png" sizes="96x96" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="shortcut icon" href="/favicon.ico" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+  <meta name="apple-mobile-web-app-title" content="MyWebSite" />
+  <link rel="manifest" href="/site.webmanifest" />
 
   <script type="module">
     import { APP_NAME } from '/src/constants';
@@ -24,7 +32,6 @@
       'meta[property="og:title"]': APP_NAME,
       'meta[property="og:description"]': `${APP_NAME} helps you manage job applications, track interviews, and streamline your job search process.`
     };
-
 
     Object.entries(metaUpdates).forEach(([selector, content]) => {
       document.querySelector(selector)?.setAttribute("content", content);
