@@ -208,10 +208,10 @@ const Dashboard = () => {
             <LayoutDashboard className="w-4 h-4 mr-2" />
             Applications
           </TabsTrigger>
-          {/* <TabsTrigger value="integrations" className="flex items-center">
+          <TabsTrigger value="integrations" className="flex items-center">
             <MailIcon className="w-4 h-4 mr-2" />
             Gmail Integration
-          </TabsTrigger> */}
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="applications" className="space-y-6">

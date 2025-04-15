@@ -15,7 +15,6 @@ import {
   Check,
   X,
   ExternalLink,
-  Code,
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
@@ -28,35 +27,26 @@ import {
   fetchJobEmails,
 } from "../../services/gmail/gmailApi";
 import { storeJobApplicationsFromGmail } from "../../services/gmail/gmailFirestore";
+import { APP_NAME } from "../../constants";
 
 const GmailIntegration = () => {
   const [initialized, setInitialized] = useState(false);
   const [loading, setLoading] = useState(false);
   const [syncing, setSyncing] = useState(false);
-  const [connected, setConnected] = useState(false);
+  const [connected, setConnected] = useState(() => {
+    return (
+      localStorage.getItem("gmail_connected") === "true" && isSignedInToGoogle()
+    );
+  });
   const [autoSync, setAutoSync] = useState(false);
   const [lastSynced, setLastSynced] = useState(null);
   const [syncResults, setSyncResults] = useState(null);
   const [error, setError] = useState(null);
   const [errorType, setErrorType] = useState(null);
   const [initAttempts, setInitAttempts] = useState(0);
-  const [isDev, setIsDev] = useState(false);
-  const [mockMode, setMockMode] = useState(false);
 
   const { toast } = useToast();
   const { currentUser } = useAuth();
-
-  useEffect(() => {
-    const hostname = window.location.hostname;
-    const isDevEnvironment =
-      hostname === "localhost" ||
-      hostname === "127.0.0.1" ||
-      hostname.includes("preview") ||
-      hostname.includes("lovable");
-
-    setIsDev(isDevEnvironment);
-    setMockMode(window.location.search.includes("mock=true"));
-  }, []);
 
   useEffect(() => {
     const initialize = async () => {
@@ -65,7 +55,9 @@ const GmailIntegration = () => {
         setError(null);
         setErrorType(null);
 
-        console.log("Initializing Gmail API...");
+        console.log(
+          "Initializing Gmail API with new Google Identity Services..."
+        );
         await initGmailApi();
         console.log("Gmail API initialized successfully");
 
@@ -88,7 +80,7 @@ const GmailIntegration = () => {
 
         if (err.code === "domain-not-authorized") {
           setError(
-            "Your domain is not authorized for Google OAuth. This is expected in preview environments."
+            "Your domain is not authorized for Google OAuth or you're using deprecated libraries. Please update to the latest Google Identity Services."
           );
           setErrorType("domain-not-authorized");
         } else if (err.code === "api-permission-denied") {
@@ -140,21 +132,6 @@ const GmailIntegration = () => {
     localStorage.setItem("gmail_auto_sync", checked.toString());
   };
 
-  const handleToggleMockMode = () => {
-    const newMockMode = !mockMode;
-    setMockMode(newMockMode);
-
-    if (newMockMode) {
-      window.location.search = window.location.search
-        ? window.location.search + "&mock=true"
-        : "?mock=true";
-    } else {
-      const url = new URL(window.location);
-      url.searchParams.delete("mock");
-      window.location.href = url.toString();
-    }
-  };
-
   const handleConnect = async () => {
     try {
       setLoading(true);
@@ -167,9 +144,14 @@ const GmailIntegration = () => {
 
       await signInToGoogle();
       setConnected(true);
+      localStorage.setItem("gmail_connected", "true");
       toast({
         title: "Gmail account connected",
-        description: "Your Gmail account is now linked to JobTrackr.",
+        description: (
+          <>
+            Your Gmail account is now linked to {APP_NAME}.
+          </>
+        ),
         duration: 3000,
       });
     } catch (err) {
@@ -191,9 +173,10 @@ const GmailIntegration = () => {
       setLoading(true);
       await signOutFromGoogle();
       setConnected(false);
+      localStorage.removeItem("gmail_connected");
       toast({
         title: "Gmail account disconnected",
-        description: "Your Gmail account has been unlinked from JobTrackr.",
+        description: <>Your Gmail account has been unlinked from {APP_NAME}.</>,
         duration: 3000,
       });
     } catch (err) {
@@ -219,7 +202,10 @@ const GmailIntegration = () => {
 
       const jobEmails = await fetchJobEmails();
 
-      const results = await storeJobApplicationsFromGmail(jobEmails);
+      const results = await storeJobApplicationsFromGmail(
+        jobEmails,
+        currentUser.uid
+      );
 
       const now = new Date();
       setLastSynced(now);
@@ -322,36 +308,27 @@ const GmailIntegration = () => {
                   <ExternalLink className="w-3 h-3 ml-1" />
                 </a>
               </p>
-
-              {isDev && (
-                <div className="mt-4 p-3 bg-primary/10 rounded-md">
-                  <h3 className="text-sm font-medium mb-2 flex items-center">
-                    <Code className="w-4 h-4 mr-1" />
-                    Developer Options
-                  </h3>
-                  <p className="text-xs mb-2">
-                    In development environments, you can use mock data to test
-                    the Gmail integration without OAuth:
-                  </p>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleToggleMockMode}
-                  >
-                    {mockMode ? "Disable Mock Mode" : "Enable Mock Mode"}
-                  </Button>
-                </div>
-              )}
             </div>
           )}
 
           {errorType === "api-permission-denied" && (
             <div className="mt-4 space-y-2 text-sm">
-              <p className="font-medium">This may be due to:</p>
+              <p className="font-medium">To solve this 403 Forbidden error:</p>
               <ol className="list-decimal pl-5 space-y-1">
-                <li>Gmail API not enabled in Google Cloud Console</li>
-                <li>API key restrictions preventing access</li>
-                <li>Missing OAuth scopes or permissions</li>
+                <li>
+                  <strong>Enable the Gmail API</strong> in your Google Cloud
+                  project
+                </li>
+                <li>
+                  Check if your API key has restrictions preventing access to
+                  Gmail API
+                </li>
+                <li>
+                  Verify you're using the correct API key and OAuth client ID
+                </li>
+                <li>
+                  Make sure you've added required OAuth scopes to your project
+                </li>
               </ol>
               <p className="mt-2">
                 <a
@@ -364,26 +341,6 @@ const GmailIntegration = () => {
                   <ExternalLink className="w-3 h-3 ml-1" />
                 </a>
               </p>
-
-              {isDev && (
-                <div className="mt-4 p-3 bg-primary/10 rounded-md">
-                  <h3 className="text-sm font-medium mb-2 flex items-center">
-                    <Code className="w-4 h-4 mr-1" />
-                    Developer Options
-                  </h3>
-                  <p className="text-xs mb-2">
-                    In development environments, you can use mock data to test
-                    the Gmail integration without API keys:
-                  </p>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleToggleMockMode}
-                  >
-                    {mockMode ? "Disable Mock Mode" : "Enable Mock Mode"}
-                  </Button>
-                </div>
-              )}
             </div>
           )}
 
@@ -397,12 +354,6 @@ const GmailIntegration = () => {
             <RefreshCw className="w-4 h-4 mr-2" />
             Retry
           </Button>
-
-          {mockMode && (
-            <Button variant="default" onClick={handleConnect}>
-              Use Mock Data
-            </Button>
-          )}
         </CardFooter>
       </Card>
     );
@@ -413,12 +364,7 @@ const GmailIntegration = () => {
       <CardHeader>
         <CardTitle className="flex items-center">
           <Mail className="w-5 h-5 mr-2" />
-          Gmail Integration{" "}
-          {mockMode && (
-            <span className="ml-2 text-xs bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200 px-2 py-0.5 rounded-full">
-              Mock Mode
-            </span>
-          )}
+          Gmail Integration
         </CardTitle>
         <CardDescription>
           Connect your Gmail account to automatically import job applications
@@ -511,28 +457,36 @@ const GmailIntegration = () => {
           </>
         )}
 
-        {isDev && (
-          <div className="mt-4 p-3 border border-dashed border-muted-foreground/20 rounded-md">
+        {errorType && (
+          <div className="mt-4 p-3 bg-red-50 text-red-800 dark:bg-red-900/20 dark:text-red-300 rounded-md">
             <h3 className="text-sm font-medium mb-2 flex items-center">
-              <Code className="w-4 h-4 mr-1" />
-              Developer Options
+              <AlertCircle className="w-4 h-4 mr-1" />
+              Error Details
             </h3>
-            <div className="flex items-center justify-between">
-              <p className="text-xs">Mock Mode (for testing without OAuth)</p>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleToggleMockMode}
+            <p className="text-xs">
+              {error}
+              <br />
+              <br />
+              <strong>Note:</strong> Google has deprecated some authentication
+              libraries. This application needs to be updated to use the latest
+              Google Identity Services API.
+              <br />
+              <a
+                href="https://developers.google.com/identity/gsi/web/guides/gis-migration"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center text-red-700 dark:text-red-400 hover:underline mt-2"
               >
-                {mockMode ? "Disable" : "Enable"}
-              </Button>
-            </div>
+                View Google's Migration Guide
+                <ExternalLink className="w-3 h-3 ml-1" />
+              </a>
+            </p>
           </div>
         )}
       </CardContent>
-      <CardFooter className="bg-muted/50 text-xs text-muted-foreground align-center p-4 rounded-b-md">
+      <CardFooter className="bg-muted/50 text-xs text-muted-foreground p-4 rounded-b-md">
         <p>
-          JobTrackr only retrieves job application related emails and stores
+          {APP_NAME} only retrieves job application related emails and stores
           minimal data.
         </p>
       </CardFooter>

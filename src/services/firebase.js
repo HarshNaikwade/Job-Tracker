@@ -15,7 +15,6 @@ import {
   collection,
   doc,
   addDoc,
-  getDoc,
   getDocs,
   updateDoc,
   deleteDoc,
@@ -89,6 +88,7 @@ export const addApplication = async (userId, applicationData) => {
     return await addDoc(applicationsRef, {
       ...applicationData,
       userId,
+      source: applicationData.source || "Manual",
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     });
@@ -128,6 +128,12 @@ export const getApplications = async (userId) => {
         // Convert Firestore timestamps to regular dates
         createdAt: doc.data().createdAt?.toDate(),
         updatedAt: doc.data().updatedAt?.toDate(),
+        dateApplied:
+          doc.data().dateApplied instanceof Object
+            ? doc.data().dateApplied.toDate()
+            : doc.data().dateApplied,
+        // Ensure source field is always present
+        source: doc.data().source || "Manual",
       }));
     } catch (indexError) {
       // If we get an index error, check if it's the specific index error
@@ -149,6 +155,11 @@ export const getApplications = async (userId) => {
           ...doc.data(),
           createdAt: doc.data().createdAt?.toDate(),
           updatedAt: doc.data().updatedAt?.toDate(),
+          dateApplied:
+            doc.data().dateApplied instanceof Object
+              ? doc.data().dateApplied.toDate()
+              : doc.data().dateApplied,
+          source: doc.data().source || "Manual",
         }));
 
         // Sort in memory by createdAt descending

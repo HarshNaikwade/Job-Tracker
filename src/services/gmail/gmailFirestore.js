@@ -1,115 +1,98 @@
+import { db } from "../firebase";
+import {
+  collection,
+  addDoc,
+  query,
+  where,
+  getDocs,
+  serverTimestamp,
+} from "firebase/firestore";
+import { APPLICATION_STATUS } from "../firebase";
 
-import { db, getCurrentUser } from '../firebase';
-import { collection, addDoc, query, where, getDocs, serverTimestamp } from 'firebase/firestore';
-import { APPLICATION_STATUS } from '../firebase';
-
-// Check if we're in development mode
-const isDevelopmentMode = () => {
-  return (
-    window.location.hostname === 'localhost' || 
-    window.location.hostname === '127.0.0.1' ||
-    window.location.hostname.includes('preview') || 
-    window.location.hostname.includes('lovable')
-  );
-};
-
-// Store job application data from Gmail in Firestore
-export const storeJobApplicationsFromGmail = async (jobApplications) => {
+export const storeJobApplicationsFromGmail = async (
+  jobApplications,
+  userId
+) => {
   try {
-    // For mock mode in development, skip Firestore and return mock results
-    if (isDevelopmentMode() && window.location.search.includes('mock=true')) {
-      console.log('Using mock data for storeJobApplicationsFromGmail');
-      
-      // Simulate a delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      return {
-        total: jobApplications.length,
-        new: jobApplications.length,
-        stored: jobApplications.length,
-        applications: jobApplications.map((app, i) => ({
-          id: `mock-id-${i}`,
-          ...app
-        }))
-      };
+    if (!userId) {
+      throw new Error("User ID is required to store applications");
     }
-    
-    const currentUser = getCurrentUser();
-    if (!currentUser) {
-      throw new Error('User must be logged in to store job applications');
-    }
-    
-    const userId = currentUser.uid;
-    const applicationsRef = collection(db, 'applications');
-    
-    // Get existing applications to avoid duplicates
-    const existingApplicationsQuery = query(
+
+    const applicationsRef = collection(db, "applications");
+
+    // Get existing applications
+    const existingQuery = query(
       applicationsRef,
-      where('userId', '==', userId),
-      where('source', '==', 'Gmail')
+      where("userId", "==", userId),
+      where("source", "==", "Gmail")
     );
-    
-    const existingApplicationsSnapshot = await getDocs(existingApplicationsQuery);
+
+    const existingDocs = await getDocs(existingQuery);
     const existingEmailIds = new Set();
-    
-    existingApplicationsSnapshot.forEach(doc => {
+
+    existingDocs.forEach((doc) => {
       const data = doc.data();
+      // Only consider emailId as unique identifier
       if (data.emailId) {
         existingEmailIds.add(data.emailId);
       }
     });
-    
-    // Filter out applications that have already been stored
-    const newApplications = jobApplications.filter(app => !existingEmailIds.has(app.emailId));
-    
-    // Store new applications
+
+    // Filter and store new applications
     const results = [];
-    for (const application of newApplications) {
-      // Map the Gmail status to our application status
-      let status = APPLICATION_STATUS.APPLIED;
-      switch (application.status) {
-        case 'Interviewing':
-          status = APPLICATION_STATUS.IN_PROGRESS;
-          break;
-        case 'Offer':
-          status = APPLICATION_STATUS.APPROVED;
-          break;
-        case 'Rejected':
-          status = APPLICATION_STATUS.REJECTED;
-          break;
-        case 'Waiting':
-          status = APPLICATION_STATUS.WAITING;
-          break;
+    for (const application of jobApplications) {
+      // Only check emailId uniqueness, not company+role
+      if (existingEmailIds.has(application.emailId)) {
+        continue;
       }
-      
+
       const applicationData = {
         userId,
-        companyName: application.companyName || 'Unknown Company',
-        jobRole: application.jobRole || 'Unknown Position',
-        status,
+        companyName: application.companyName,
+        jobRole: application.jobRole,
+        status: mapGmailStatusToApplicationStatus(application.status),
         dateApplied: application.dateApplied,
+        source: "Gmail",
         notes: application.notes,
-        source: 'Gmail',
-        emailId: application.emailId,
+        emailId: application.emailId, // Store email ID for future deduplication
         createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
+        updatedAt: serverTimestamp(),
       };
-      
-      const docRef = await addDoc(applicationsRef, applicationData);
-      results.push({
-        id: docRef.id,
-        ...applicationData
-      });
+
+      try {
+        const docRef = await addDoc(applicationsRef, applicationData);
+        results.push({ id: docRef.id, ...applicationData });
+      } catch (error) {
+        console.error(
+          `Failed to store application for ${application.companyName}:`,
+          error
+        );
+      }
     }
-    
+
     return {
       total: jobApplications.length,
-      new: newApplications.length,
+      new: results.length,
       stored: results.length,
-      applications: results
+      applications: results,
     };
   } catch (error) {
-    console.error('Error storing job applications from Gmail:', error);
+    console.error("Error storing job applications:", error);
     throw error;
+  }
+};
+
+const mapGmailStatusToApplicationStatus = (gmailStatus) => {
+  switch (gmailStatus) {
+    case "Interviewing":
+      return APPLICATION_STATUS.IN_PROGRESS;
+    case "Offer":
+      return APPLICATION_STATUS.APPROVED;
+    case "Rejected":
+      return APPLICATION_STATUS.REJECTED;
+    case "Waiting":
+      return APPLICATION_STATUS.WAITING;
+    default:
+      return APPLICATION_STATUS.APPLIED;
   }
 };

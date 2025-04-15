@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Edit, Trash2, MoreHorizontal, Clock } from "lucide-react";
+import { Edit, Trash2, MoreHorizontal, Clock, Mail } from "lucide-react";
 import { motion } from "framer-motion";
 
 import StatusBadge from "../ui/StatusBadge";
@@ -82,6 +82,7 @@ const ApplicationCard = ({ application, onEdit, onDelete }) => {
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
               className="absolute right-0 mt-1 w-36 bg-card rounded-md shadow-lg border z-10 overflow-hidden"
+              ref={menuRef}
             >
               <button
                 onClick={handleEdit}
@@ -117,9 +118,18 @@ const ApplicationCard = ({ application, onEdit, onDelete }) => {
         </div>
       )}
 
-      <div className="mt-3 pt-2 border-t flex items-center justify-center text-xs text-foreground/50">
-        <Clock className="w-3 h-3 mr-1" />
-        <span>Updated: {formatDate(application.updatedAt)}</span>
+      <div className="mt-3 pt-2 border-t flex items-center justify-between text-xs text-foreground/50">
+        <div className="flex items-center">
+          <Clock className="w-3 h-3 mr-1" />
+          <span>Updated: {formatDate(application.updatedAt)}</span>
+        </div>
+
+        {application.source === "Gmail" && (
+          <div className="flex items-center text-primary/70">
+            <Mail className="w-3 h-3 mr-1" />
+            <span>Fetched from Gmail</span>
+          </div>
+        )}
       </div>
     </motion.div>
   );
